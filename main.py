@@ -4,19 +4,16 @@ import uuid
 
 app = FastAPI(
     title="Zolo License Server",
-    version="0.1.0"
+    version="1.0.0"
 )
 
-# Vaqtinchalik storage (RAM)
+# In-memory storage (will reset on server restart)
 licenses = {}
 
 
-# --------- MODELS ---------
-class ActivateReq(BaseModel):
+class ActivateRequest(BaseModel):
     code: str
 
-
-# --------- ENDPOINTS ---------
 
 @app.get("/")
 def root():
@@ -25,9 +22,6 @@ def root():
 
 @app.post("/admin/license/create")
 def create_license(plan: str):
-    """
-    Admin license yaratadi
-    """
     code = str(uuid.uuid4())
     licenses[code] = {
         "plan": plan,
@@ -35,25 +29,23 @@ def create_license(plan: str):
     }
     return {
         "code": code,
-        "plan": plan
+        "plan": plan,
+        "active": False
     }
 
 
 @app.post("/activate")
-def activate(req: ActivateReq):
-    """
-    License activate qilish
-    """
-    lic = licenses.get(req.code)
+def activate(request: ActivateRequest):
+    license_data = licenses.get(request.code)
 
-    if not lic:
+    if license_data is None:
         return {"status": "INVALID"}
 
-    if lic["active"]:
-        return {"status": "ALREADY_ACTIVE"}
+    if license_data["active"]:
+        return {"status": "ALREADY_ACTIVE", "plan": license_data["plan"]}
 
-    lic["active"] = True
+    license_data["active"] = True
     return {
         "status": "ACTIVATED",
-        "plan": lic["plan"]
+        "plan": license_data["plan"]
     }
