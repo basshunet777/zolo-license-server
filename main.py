@@ -2,12 +2,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import uuid
 
-app = FastAPI(
-    title="Zolo License Server",
-    version="1.0.0"
-)
+app = FastAPI(title="Zolo License Server", version="1.0.0")
 
-# In-memory storage (will reset on server restart)
 licenses = {}
 
 
@@ -17,35 +13,25 @@ class ActivateRequest(BaseModel):
 
 @app.get("/")
 def root():
-    return {"service": "zolo-license-server", "status": "ok"}
+    return {"status": "ok"}
 
 
-@app.post("/admin/license/create")
+@app.post("/admin/create/{plan}")
 def create_license(plan: str):
-    code = str(uuid.uuid4())
-    licenses[code] = {
-        "plan": plan,
-        "active": False
-    }
-    return {
-        "code": code,
-        "plan": plan,
-        "active": False
-    }
+    code = f"ZOLO-{plan}-{uuid.uuid4().hex[:10]}"
+    licenses[code] = {"plan": plan, "active": False}
+    return {"code": code}
 
 
 @app.post("/activate")
-def activate(request: ActivateRequest):
-    license_data = licenses.get(request.code)
+def activate(req: ActivateRequest):
+    lic = licenses.get(req.code)
 
-    if license_data is None:
+    if lic is None:
         return {"status": "INVALID"}
 
-    if license_data["active"]:
-        return {"status": "ALREADY_ACTIVE", "plan": license_data["plan"]}
+    if lic.get("active") is True:
+        return {"status": "ALREADY_ACTIVE", "plan": lic["plan"]}
 
-    license_data["active"] = True
-    return {
-        "status": "ACTIVATED",
-        "plan": license_data["plan"]
-    }
+    lic["active"] = True
+    return {"status": "ACTIVATED", "plan": lic["plan"]}
