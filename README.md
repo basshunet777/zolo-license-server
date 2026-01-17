@@ -21,3 +21,15 @@ def create_license(plan: str):
     return {
         "code": code
     }
+from pydantic import BaseModel
+import re
+
+class ValidateRequest(BaseModel):
+    code: str
+
+@app.post("/validate")
+def validate_license(req: ValidateRequest):
+    pattern = r"^ZOLO-[A-Z0-9]+-[A-Za-z0-9]{11}$"
+    if re.match(pattern, req.code):
+        return {"valid": True, "plan": req.code.split("-")[1]}
+    return {"valid": False}
