@@ -1,37 +1,23 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-import uuid
+import random
+import string
 
 app = FastAPI(title="Zolo License Server", version="1.0.0")
 
-licenses = {}
 
-
-class ActivateRequest(BaseModel):
-    code: str
-
-
-@app.get("/")
-def root():
-    return {"status": "ok"}
+def generate_license_key(plan: str) -> str:
+    """
+    Generates a license key like: ZOLO-7D-Lx9SnktWFdqO
+    """
+    random_part = "".join(
+        random.choices(string.ascii_letters + string.digits, k=11)
+    )
+    return f"ZOLO-{plan}-{random_part}"
 
 
 @app.post("/admin/create/{plan}")
 def create_license(plan: str):
-    code = f"ZOLO-{plan}-{uuid.uuid4().hex[:10]}"
-    licenses[code] = {"plan": plan, "active": False}
-    return {"code": code}
-
-
-@app.post("/activate")
-def activate(req: ActivateRequest):
-    lic = licenses.get(req.code)
-
-    if lic is None:
-        return {"status": "INVALID"}
-
-    if lic.get("active") is True:
-        return {"status": "ALREADY_ACTIVE", "plan": lic["plan"]}
-
-    lic["active"] = True
-    return {"status": "ACTIVATED", "plan": lic["plan"]}
+    code = generate_license_key(plan)
+    return {
+        "code": code
+    }
